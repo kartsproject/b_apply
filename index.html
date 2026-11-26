@@ -276,6 +276,7 @@ section{padding-top:32px}
         <li><b>2회차 일정 변경:</b> 2회차는 <b>11/21(토) 10:00 – 12:00</b>에 진행합니다(시간도 <b>1시간씩 앞당겨졌습니다</b>). 2회차 멘토는 <b>정은영 선생님</b>으로 바뀌었습니다. 2회차 학생은 바뀐 시간을 꼭 다시 확인해 주세요.</li>
         <li>이○윤 학생: 2회차 → <b>3회차 12/6(일) 19:20</b></li>
         <li>이○민 학생: 2회차 → <b>3회차 12/6(일) 19:30</b></li>
+        <li>김○율 학생: <b>3회차 12/6(일) 19:40 추가 보강</b>(2회차에 이어 한 번 더 진행)</li>
         <li>박○엘 학생: 2회차 → <b>1회차 10/25(일) 12:40</b></li>
         <li>한○린 학생: 1회차 → <b>2회차 11/21(토) 11:10</b></li>
       </ul>
@@ -368,7 +369,7 @@ const SESSIONS = [
       ['김○해','초6','10:10','10:20 – 10:30','2회차 11:20 (11/21(토)로 날짜 변경, 1시간 앞당김)'],['김○율','초6','10:20','10:30 – 10:40','2회차 11:30 (11/21(토)로 날짜 변경, 1시간 앞당김)'],
       ['김○혜','초6','10:30','10:40 – 10:50','2회차 11:40 (11/21(토)로 날짜 변경, 1시간 앞당김)'],['문○원','초6','10:50','11:00 – 11:10','2회차 12:00 (11/21(토)로 날짜 변경, 1시간 앞당김)'],
       ['한○린','초5','11:00','11:10 – 11:20','1회차 → 2회차 이동 (11/21(토)로 날짜 변경, 1시간 앞당김)'],['송○잎','초6','11:10','11:20 – 11:30','2회차 12:20 (11/21(토)로 날짜 변경, 1시간 앞당김)'] ]},
-  { no:3, date:'2026-12-06', d:'12.6', w:'일', range:'17:30 – 19:40', mentor:'정은영', role:'국립발레단 수석 무용수',
+  { no:3, date:'2026-12-06', d:'12.6', w:'일', range:'17:30 – 19:50', mentor:'정은영', role:'국립발레단 수석 무용수',
     brk:{after:5, label:'휴식 18:20 – 18:30'},
     list:[
       ['한○슬','초6','17:20','17:30 – 17:40'],['맹○유','중1','17:30','17:40 – 17:50'],
@@ -376,7 +377,8 @@ const SESSIONS = [
       ['김○서','중2','18:00','18:10 – 18:20'],['김○채','중2','18:20','18:30 – 18:40'],
       ['신○윤','중2','18:30','18:40 – 18:50'],['권○재','중3','18:40','18:50 – 19:00'],
       ['이○은','중3','18:50','19:00 – 19:10'],['안○랑','고1','19:00','19:10 – 19:20'],
-      ['이○윤','초6','19:10','19:20 – 19:30','2회차'],['이○민','초6','19:20','19:30 – 19:40','2회차'] ]},
+      ['이○윤','초6','19:10','19:20 – 19:30','2회차'],['이○민','초6','19:20','19:30 – 19:40','2회차'],
+      ['김○율','초6','19:30','19:40 – 19:50','추가 보강'] ]},
 ];
 
 /* ================== 공통 ================== */
@@ -388,13 +390,16 @@ const longDate = s => { const [y,m,d]=s.date.split('-').map(Number); return `${m
 function findStudent(name){
   const n = norm(name);
   if (n.length < 2) return null;
+  const hits = [];   // 같은 학생이 여러 회차에 있으면(추가 보강 등) 오늘 이후 가장 가까운 회차를 보여 줌
   for (const s of SESSIONS){
     for (let i=0;i<s.list.length;i++){
       const m = s.list[i][0];
-      if (m.length===n.length && m[0]===n[0] && m[m.length-1]===n[n.length-1]) return {s, i, row:s.list[i]};
+      if (m.length===n.length && m[0]===n[0] && m[m.length-1]===n[n.length-1]) hits.push({s, i, row:s.list[i]});
     }
   }
-  return null;
+  if (!hits.length) return null;
+  const t = new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
+  return hits.find(h=>h.s.date >= t) || hits[hits.length-1];
 }
 
 /* ================== 회차 카드 ================== */
@@ -416,7 +421,7 @@ function renderTable(){
   let html = '';
   s.list.forEach((r,i)=>{
     const isHit = hit && hit.s===s && hit.i===i;
-    html += `<tr class="${isHit?'hit':''}" ${isHit?'id="hitRow"':''}><td>${i+1}</td><td class="nm">${r[0]}${r[4]?'<span class="chg">변경</span>':''}</td><td class="col-gr">${r[1]}</td><td class="wait">${r[2]}</td><td class="mt">${r[3]}</td></tr>`;
+    html += `<tr class="${isHit?'hit':''}" ${isHit?'id="hitRow"':''}><td>${i+1}</td><td class="nm">${r[0]}${r[4]?`<span class="chg">${/^추가/.test(r[4])?'추가':'변경'}</span>`:''}</td><td class="col-gr">${r[1]}</td><td class="wait">${r[2]}</td><td class="mt">${r[3]}</td></tr>`;
     if (s.brk && s.brk.after===i+1) html += `<tr class="brk"><td colspan="5">${s.brk.label}</td></tr>`;
   });
   $('#tbody').innerHTML = html;
@@ -434,7 +439,7 @@ function slotHTML(f){
     <dt>회차</dt><dd>${f.s.no}회차 · ${longDate(f.s)}</dd>
     <dt>멘토</dt><dd>${f.s.mentor} 선생님</dd>
     <dt>대기실 접속</dt><dd class="big">${wait}</dd>
-    <dt>멘토링</dt><dd>${mt}</dd></dl>${f.row[4]?`<div class="prev">일정이 조정되었습니다 · 변경 전: ${f.row[4]}</div>`:''}`;
+    <dt>멘토링</dt><dd>${mt}</dd></dl>${f.row[4]?`<div class="prev">${/^추가/.test(f.row[4])?'추가 보강 일정입니다':'일정이 조정되었습니다 · 변경 전: '+f.row[4]}</div>`:''}`;
 }
 function doFind(){
   const v = norm($('#name').value), box = $('#findResult');
